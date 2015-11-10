@@ -33,3 +33,6 @@
 
 # Documents
 *.pdf
+
+# Image files
+*.ppm
