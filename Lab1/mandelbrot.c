@@ -18,7 +18,11 @@
 #endif
 
 #if NB_THREADS > 0
+#ifndef WIN32
 #include <pthread.h>
+#else 
+#include "pthread.h"
+#endif
 #endif
 
 color_t *color = NULL;
@@ -28,6 +32,7 @@ color_t *color = NULL;
 struct mandelbrot_thread
 {
 	int id;
+	int last_row;
 #ifdef MEASURE
 struct mandelbrot_timing timing;
 #endif
@@ -111,8 +116,7 @@ compute_chunk(struct mandelbrot_param *args)
 
 			// Change a negative value to 0 in val to make mandelbrot
 			// elements to appear black in the final picture.
-			pixel = val > args->maxiter ? args->mandelbrot_color : color[val
-			    % num_colors(args)];
+			pixel = val > args->maxiter ? args->mandelbrot_color : color[val % num_colors(args)];
 
 			ppm_write(args->picture, j, i, pixel);
 		}
@@ -124,8 +128,7 @@ compute_chunk(struct mandelbrot_param *args)
 void
 init_round(struct mandelbrot_thread *args)
 {
-	// Initialize or reinitialize here variables before any thread starts or restarts computation
-	// Every thread run this function; feel free to allow only one of them to do anything
+	args->last_row += NB_THREADS;
 }
 
 /*
@@ -136,32 +139,24 @@ parallel_mandelbrot(struct mandelbrot_thread *args, struct mandelbrot_param *par
 {
 // Compiled only if LOADBALANCE = 0
 #if LOADBALANCE == 0
-	// Replace this code with a naive *parallel* implementation.
-	// Only thread of ID 0 compute the whole picture
-	if(args->id == 0)
-	{
-		// Define the region compute_chunk() has to compute
-		// Entire height: from 0 to picture's height
-		parameters->begin_h = 0;
-		parameters->end_h = parameters->height;
-		// Entire width: from 0 to picture's width
-		parameters->begin_w = 0;
-		parameters->end_w = parameters->width;
+	// Naive *parallel* implementation.
+	parameters->begin_h = args->id * parameters->height / NB_THREADS;
+	parameters->end_h = (args->id + 1) * parameters->height / NB_THREADS;
+	// Entire width: from 0 to picture's width
+	parameters->begin_w = 0;
+	parameters->end_w = parameters->width;
 
-		// Go
-		compute_chunk(parameters);
-	}
+	// Go
+	compute_chunk(parameters);
+
 #endif
 // Compiled only if LOADBALANCE = 1
 #if LOADBALANCE == 1
-	// Replace this code with your load-balanced smarter solution.
-	// Only thread of ID 0 compute the whole picture
-	if(args->id == 0)
-	{
-		// Define the region compute_chunk() has to compute
-		// Entire height: from 0 to picture's height
-		parameters->begin_h = 0;
-		parameters->end_h = parameters->height;
+	// Load-balanced smarter solution.
+	int row;
+	for(row = args->id; row < parameters->height; row += NB_THREADS) {				
+		parameters->begin_h = row;
+		parameters->end_h = row +1;
 		// Entire width: from 0 to picture's width
 		parameters->begin_w = 0;
 		parameters->end_w = parameters->width;
@@ -347,6 +342,7 @@ init_mandelbrot(struct mandelbrot_param *param)
 	for (i = 0; i < NB_THREADS; i++)
 	{
 		thread_data[i].id = i;
+		thread_data[i].last_row = i;
 
 #ifdef MEASURE
 		timing[i] = &thread_data[i].timing;
