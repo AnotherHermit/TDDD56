@@ -36,3 +36,9 @@
 
 # Image files
 *.ppm
+
+# Folders
+report/
+
+# Backup
+*.*~
