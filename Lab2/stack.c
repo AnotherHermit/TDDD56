@@ -140,6 +140,7 @@ stack_pop_aba(stack_t* stack)
 {
   stack_element_t* head;
   stack_element_t* expected;
+  stack_element_t* next;
   size_t cas_result;
 
 #if NON_BLOCKING == 0
@@ -154,6 +155,7 @@ stack_pop_aba(stack_t* stack)
   do {
     expected = stack->head;
     head = stack->head;
+    next = head->next;
     pthread_mutex_unlock(&aba_m_2);
     pthread_mutex_lock(&aba_m_1);
     pthread_mutex_unlock(&aba_m_1);
@@ -161,7 +163,7 @@ stack_pop_aba(stack_t* stack)
     cas_result = cas(
       (size_t*)&stack->head,
       (size_t)expected,
-      (size_t)head->next);
+      (size_t)next);
     //printf("CAS failed\n");
   } while (cas_result != (size_t)expected);
 
