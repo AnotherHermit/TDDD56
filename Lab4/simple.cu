@@ -11,7 +11,12 @@
 // By Ingemar 2009
 
 #include <stdlib.h>
+
+#ifdef _WINDOWS
+#include <WinSock2.h>
+#else
 #include <sys/time.h>
+#endif
 
 static struct timeval timeStart;
 static char hasStart = 0;
