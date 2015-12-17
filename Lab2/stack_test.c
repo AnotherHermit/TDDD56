@@ -209,7 +209,9 @@ void* aba_1(void* arg)
   pthread_barrier_wait(&aba_barrier);
   // Pop A (CAS Head = A)
   // expected: B C
+  printf("Pop A T0 -- PREEMPTED\n");
   stack_pop_aba(stack);   // -- PREEMPTED  
+  print_stack("Pop A T0 -- Done");
   // Result should be: A D B C 
   // But is: B C
   // D is gone :(
@@ -229,15 +231,15 @@ void* aba_2(void* arg)
 
   // Pop and store A > B C
   keeper = stack_pop(stack);
-  print_stack("Pop A");
+  print_stack("Pop A T1");
   // Push D > D B C
   element = malloc(sizeof(stack_element_t));
   element->value = 'D';
   stack_push(stack, element);
-  print_stack("Push D");
+  print_stack("Push D T1");
   // Push A > A D B C
   stack_push(stack, keeper);
-  print_stack("Push A");
+  print_stack("Push A T1");
   // Control back to thread 1
   pthread_mutex_unlock(&aba_m_1);
   return NULL;
